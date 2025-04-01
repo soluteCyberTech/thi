@@ -190,7 +190,9 @@ app.post('/login', async (req, res) => {
 
 app.post('/changepassword', async (req, res) => {
     try {
+
         const {password ,trans_code } = req.body;
+        
         const validPassword = passwordHash.generate(password)
         const is_active=1;
         const is_staff=1
