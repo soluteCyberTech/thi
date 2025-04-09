@@ -78,3 +78,8 @@
 .text-field .MuiInputLabel-root.Mui-focused {
   color: black;
 }
+
+.main_side{
+  width: 100% !important;
+  padding: 0% !important;
+}

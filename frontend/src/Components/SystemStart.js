@@ -22,39 +22,25 @@ useEffect(()=>{
 
         setactivation(getActivationData[0].state)
     }
-    
-    
 
 },[getActivationData])
   return (
 
     <div className=''>
-  
-
     {activation ? 
 
             <>
-
-           
             <div className=''>
              
              <Login/>
              </div>
-
             
             </>
-            
             : 
-
            // <AssemblySetup/>
            <SetupSteps/>
         }
-   
-  
-    
 
-   
-   
 </div>
   )
 }

@@ -85,12 +85,12 @@ function Login() {
             // Store user data in localStorage
             const userData = {
               name: response.data.user.name,
-              email: response.data.user.emain, // Note: backend uses 'emain' for email
+              email: response.data.user.email, 
               department: response.data.user.department,
               role: response.data.user.role,
               staff_id: response.data.user.staff_id,
               is_staff: response.data.user.is_staff ,
-              trans_code: response.data.user.trans_code ,
+              trans_code: response.data.user.id ,
             };
             
             localStorage.setItem('userInfo', JSON.stringify(userData));

@@ -7,6 +7,9 @@ import { ErrorMessage } from '../Message';
 import { styled } from '@mui/material/styles';
 import Stack from '@mui/material/Stack';
 import { useNavigate } from 'react-router-dom';
+import DepartmentModal from './DepartmentModal';
+import HODModal from './HODModal';
+import DesignationModal from './DesignationModal'; 
 import {
   Paper,
   Typography,
@@ -17,6 +20,7 @@ import {
   Avatar,
   List,
   ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
   Divider,
@@ -29,7 +33,8 @@ import {
   IconButton,
   LinearProgress,
   Tabs,
-  Tab
+  Tab,
+  Badge
 } from '@mui/material';
 
 import {
@@ -45,25 +50,93 @@ import {
   DeleteForever,
   Dashboard as DashboardIcon,
   Edit as EditIcon,
-  PersonAdd
+  PersonAdd,
+  Business as BusinessIcon,
+  Add as AddIcon,
+  Menu as MenuIcon,
+  Close as CloseIcon,
+  NotificationsOutlined,
+  Category as CategoryIcon
 } from '@mui/icons-material';
 
-const PageContainer = styled('div')({
-  height: '100vh',
+const PageContainer = styled('div')(({ theme }) => ({
+  minHeight: '100vh',
   display: 'flex',
   flexDirection: 'column',
-  backgroundColor: '#f5f6fa'
+  backgroundColor: '#f5f6fa',
+  overflow: 'hidden',
+  width: '100%',
+  position: 'relative'
+}));
+
+const MainContent = styled('main')(({ theme }) => ({
+  minHeight: '100vh',
+  padding: theme.spacing(3),
+  width: '100%',
+  overflowX: 'hidden',
+  [theme.breakpoints.down('md')]: {
+    padding: theme.spacing(2),
+  }
+}));
+
+
+
+const ContentWrapper = styled('div')({
+  overflowX: 'hidden',
+  overflowY: 'auto',
+  width: '100%',
+  height: '100%'
 });
 
-const ScrollableContent = styled('div')({
-  flexGrow: 1,
-  overflowY: 'auto',
-  padding: '24px'
-});
+const TabsContainer = styled('div')(({ theme }) => ({
+  backgroundColor: 'white',
+  borderRadius: theme.spacing(1),
+  marginBottom: theme.spacing(3),
+  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+  '.MuiTabs-root': {
+    minHeight: 48,
+    borderBottom: `1px solid ${theme.palette.divider}`,
+  },
+  '.MuiTab-root': {
+    minHeight: 48,
+    textTransform: 'none',
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    color: theme.palette.text.secondary,
+    '&.Mui-selected': {
+      color: theme.palette.primary.main,
+    }
+  }
+}));
 
 function Dashboard(props) {
+  const [activeTab, setActiveTab] = useState(0);
   const [userInfo, setUserInfo] = useState();
   const [ComanpyDetailsInfo, setComanpyDetailsInfo] = useState();
+  const [departments, setDepartments] = useState([]);
+  const [showDepartmentModal, setShowDepartmentModal] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword1, setShowPassword1] = useState(false);
+  const [showPasswordchange, SetshowPasswordchange] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    password: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setpasswordError] = useState(false);
+  const [confirmPasswordError, setconfirmPasswordError] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({
+    length: false,
+    letter: false,
+    number: false,
+    special: false
+  });
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [showHODModal, setShowHODModal] = useState(false);
+  const [showDesignationModal, setShowDesignationModal] = useState(false);
 
   useEffect(() => {
     const savedUserInfo = localStorage.getItem('userInfo');
@@ -72,8 +145,20 @@ function Dashboard(props) {
     }
   }, []);
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showPassword1, setShowPassword1] = useState(false);
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await axios.get(`${URL}/departments`);
+        setDepartments(response.data);
+      } catch (error) {
+        console.error('Failed to fetch departments:', error);
+      }
+    };
+
+    if (activeTab === 1) {
+      fetchDepartments();
+    }
+  }, [activeTab]);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -91,21 +176,15 @@ function Dashboard(props) {
     }
   }, [userInfo]);
 
-  const [showPasswordchange, SetshowPasswordchange] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    password: '',
-    confirmPassword: ''
-  });
+  const handalShowPasswordChange = () => {
+    SetshowPasswordchange(true);
+  };
 
-  const [passwordError, setpasswordError] = useState(false);
-  const [confirmPasswordError, setconfirmPasswordError] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState({
-    length: false,
-    letter: false,
-    number: false,
-    special: false
-  });
+  const handalclosePasswordChange = () => {
+    SetshowPasswordchange(false);
+  };
+
+  const navigate = useNavigate();
 
   const validatePassword = (password) => {
     setPasswordStrength({
@@ -141,18 +220,6 @@ function Dashboard(props) {
     }
   };
 
-  const handalShowPasswordChange = () => {
-    SetshowPasswordchange(true);
-  };
-
-  const handalclosePasswordChange = () => {
-    SetshowPasswordchange(false);
-  };
-
-  const navigate = useNavigate();
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-
   const changePasswordFirstTime = async (e) => {
     e.preventDefault();
 
@@ -182,7 +249,6 @@ function Dashboard(props) {
   };
 
   const calculatePasswordStrength = () => {
-    // mui
     const { length, letter, number, special } = passwordStrength;
     const criteria = [length, letter, number, special];
     const strengthPercentage = (criteria.filter(Boolean).length / 4) * 100;
@@ -193,107 +259,140 @@ function Dashboard(props) {
     return { value: 25, color: 'error' };
   };
 
-  const [activeTab, setActiveTab] = useState(0);
+  const handleEditDepartment = (dept) => {
+    setSelectedDepartment(dept);
+    setShowDepartmentModal(true);
+  };
+
+  const handleDeleteDepartment = async (deptId) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await axios.delete(`${URL}/departments/${deptId}`);
+        setDepartments(departments.filter(dept => dept.id !== deptId));
+        Swal.fire('Deleted!', 'Department has been deleted.', 'success');
+      } catch (error) {
+        Swal.fire('Error!', 'Failed to delete department.', 'error');
+      }
+    }
+  };
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
+
+
+  const handleDepartmentClick = () => {
+    setShowDepartmentModal(true);
+  };
+
+  const handleModalClose = (reopen = true) => {
+    setShowDepartmentModal(!reopen);
+  };
+
+  const handleHODClick = () => {
+    setShowHODModal(true);
+  };
+
+  const handleHODModalClose = (reopen = true) => {
+    setShowHODModal(!reopen);
+  };
+
+  const handleDesignationClick = () => {
+    setShowDesignationModal(true);
+  };
+
+  const handleDesignationModalClose = (reopen = true) => {
+    setShowDesignationModal(!reopen);
+  };
+
   return (
     <PageContainer>
-      <ScrollableContent>
-        <Paper 
-          elevation={0}
-          sx={{ 
-            display: 'flex',
-            height: '100%',
-            overflow: 'hidden',
-            borderRadius: 2
-          }}
-        >
-          {/*Tabs */}
-          <Box sx={{ 
-            width: 250,
-            borderRight: 1,
-            borderColor: 'divider',
-            bgcolor: 'white',
-          }}>
-            <Tabs
-              orientation="vertical"
-              value={activeTab}
-              onChange={handleTabChange}
-              sx={{
-                '& .MuiTab-root': {
-                  minHeight: '56px',
-                  textTransform: 'none',
-                  alignItems: 'flex-start',
-                  justifyContent: 'flex-start',
-                  px: 3,
-                  fontSize: '0.875rem',
-                  color: 'text.secondary'
-                },
-                '& .Mui-selected': {
-                  color: 'primary.main',
-                  bgcolor: 'action.selected'
-                }
-              }}
-            >
-              <Tab
-                icon={<Person />}
-                iconPosition="start"
-                label="My Profile"
-                sx={{ width: '100%' }}
-              />
-              <Tab
-                icon={<Settings />}
-                iconPosition="start"
-                label="Settings"
-                sx={{ width: '100%' }}
-              />
-              <Tab
-                icon={<DeleteForever />}
-                iconPosition="start"
-                label="Delete Account"
-                sx={{
-                  width: '100%',
-                  color: 'error.main',
-                  '&.Mui-selected': {
-                    color: 'error.main',
-                    bgcolor: 'error.lighter'
-                  }
-                }}
-              />
-            </Tabs>
-          </Box>
+      <MainContent>
+  
 
-          {/* Conten*/}
-          <Box sx={{ 
-            flex: 1,
-            overflowY: 'auto',
-            bgcolor: '#f8fafc',
-            p: 3
-          }}>
-            <Paper 
-              elevation={0}
+        <TabsContainer>
+          <Tabs 
+            value={activeTab}
+            onChange={handleTabChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              px: 2,
+              borderBottom: 1,
+              borderColor: 'divider'
+            }}
+          >
+            <Tab 
+              icon={<Person />} 
+              iconPosition="start"
+              label="My Profile" 
               sx={{ 
-                p: 3,
-                height: '100%',
-                borderRadius: 2,
-                bgcolor: 'white'
+                minHeight: 48,
+                alignItems: 'center'
               }}
-            >
-              {activeTab === 0 && (
-                <Box sx={{ maxWidth: 1200, margin: '0 auto' }}>
-                  <Grid container spacing={3}>
-                    {/* Profile  */}
-                    <Grid item xs={12}>
-                      <Paper sx={{ p: 3, mb: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
+            />
+            <Tab 
+              icon={<Settings />}
+              iconPosition="start" 
+              label="Quick Setup"
+              sx={{ 
+                minHeight: 48,
+                alignItems: 'center'
+              }}
+            />
+          </Tabs>
+        </TabsContainer>
+
+        <ContentWrapper>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 2,
+              overflow: 'hidden',
+              backgroundColor: 'white',
+              maxWidth: '100%',
+              '& > *': {
+                maxWidth: '100%',
+                overflowX: 'hidden'
+              }
+            }}
+          >
+           
+            {activeTab === 0 && (
+              <Box sx={{ p: 3 }}>
+                <Grid container spacing={3}>
+                
+                  <Grid item xs={12}>
+                    <Paper 
+                      elevation={0}
+                      sx={{ 
+                        p: 3, 
+                        borderRadius: 2,
+                        background: 'linear-gradient(to right, #fff, #f8fafc)'
+                      }}
+                    >
+                      <Grid container spacing={3} alignItems="flex-start">
+                        <Grid item xs={12} sm="auto">
                           <Box sx={{ position: 'relative' }}>
                             <Avatar 
                               alt="User Avatar" 
                               src={userInfo?.avatar || '/default-avatar.png'}
-                              sx={{ width: 100, height: 100 }}
+                              sx={{ 
+                                width: { xs: 80, sm: 100 }, 
+                                height: { xs: 80, sm: 100 },
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                              }}
                             />
                             <IconButton
                               size="small"
@@ -309,60 +408,71 @@ function Dashboard(props) {
                                 type="file"
                                 hidden
                                 accept="image/*"
-                                onChange={(e) => {
-                                  // Handle image upload
-                                }}
+                                onChange={(e) => {}}
                               />
                               <EditIcon sx={{ color: 'white', fontSize: '1rem' }} />
                             </IconButton>
                           </Box>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600, mb: 1 }}>
-                              {userInfo?.name || 'Jack Adams'}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                              {userInfo?.role || 'Product Designer'}
-                            </Typography>
-                            <Stack direction="row" spacing={2}>
+                        </Grid>
+                        <Grid item xs={12} sm>
+                          <Box sx={{ 
+                            display: 'flex', 
+                            flexDirection: 'column',
+                            height: '100%',
+                            justifyContent: 'space-between'
+                          }}>
+                            <Box>
+                              <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                {userInfo?.name || 'Jack Adams'}
+                              </Typography>
+                              <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                                {userInfo?.role || 'Product Designer'}
+                              </Typography>
+                            </Box>
+                            <Stack 
+                              direction={{ xs: 'column', sm: 'row' }} 
+                              spacing={2}
+                              sx={{ mt: { xs: 2, sm: 0 } }}
+                            >
                               <Button
                                 variant="outlined"
-                                size="small"
                                 startIcon={<EditIcon />}
-                                onClick={() => {/* Handle edit profile */}}
+                                onClick={() => {}}
+                                sx={{ textTransform: 'none' }}
                               >
                                 Edit Profile
                               </Button>
                               <Button
                                 variant="outlined"
-                                size="small"
                                 startIcon={<LockReset />}
                                 onClick={handalShowPasswordChange}
+                                sx={{ textTransform: 'none' }}
                               >
                                 Change Password
                               </Button>
                             </Stack>
                           </Box>
-                        </Box>
-                      </Paper>
-                    </Grid>
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                  </Grid>
 
-                    {/* Personal Information */}
+               
+                  <Grid container item spacing={3}>
+                 
                     <Grid item xs={12} md={6}>
-                      <Paper sx={{ p: 3 }}>
-                        <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                      <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
+                        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
                           Personal Information
                         </Typography>
-                        <Divider sx={{ my: 2 }} />
-                        <Grid container spacing={2}>
+                        <Grid container spacing={3}>
                           <Grid item xs={12} sm={6}>
                             <TextField
                               fullWidth
                               label="First Name"
                               size="small"
                               value={userInfo?.firstName || 'Jack'}
-                              InputProps={{
-                                readOnly: true,
-                              }}
+                              InputProps={{ readOnly: true }}
                             />
                           </Grid>
                           <Grid item xs={12} sm={6}>
@@ -371,9 +481,7 @@ function Dashboard(props) {
                               label="Last Name"
                               size="small"
                               value={userInfo?.lastName || 'Adams'}
-                              InputProps={{
-                                readOnly: true,
-                              }}
+                              InputProps={{ readOnly: true }}
                             />
                           </Grid>
                           <Grid item xs={12}>
@@ -382,9 +490,7 @@ function Dashboard(props) {
                               label="Email"
                               size="small"
                               value={userInfo?.email || 'jackadams@gmail.com'}
-                              InputProps={{
-                                readOnly: true,
-                              }}
+                              InputProps={{ readOnly: true }}
                             />
                           </Grid>
                           <Grid item xs={12}>
@@ -393,45 +499,127 @@ function Dashboard(props) {
                               label="Phone"
                               size="small"
                               value={userInfo?.phone || '(213) 555-1234'}
-                              InputProps={{
-                                readOnly: true,
-                              }}
+                              InputProps={{ readOnly: true }}
                             />
                           </Grid>
                         </Grid>
                       </Paper>
                     </Grid>
 
-
+                
+                    <Grid item xs={12} md={6}>
+                      <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
+                        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                          Company Information
+                        </Typography>
+                        <Grid container spacing={3}>
+                          <Grid item xs={12}>
+                            <TextField
+                              fullWidth
+                              label="Company Name"
+                              size="small"
+                              value={ComanpyDetailsInfo?.name || 'Tech Solutions Inc'}
+                              InputProps={{ readOnly: true }}
+                            />
+                          </Grid>
+                          <Grid item xs={12}>
+                            <TextField
+                              fullWidth
+                              label="Department"
+                              size="small"
+                              value={userInfo?.department || 'Product Design'}
+                              InputProps={{ readOnly: true }}
+                            />
+                          </Grid>
+                          <Grid item xs={12}>
+                            <TextField
+                              fullWidth
+                              label="Position"
+                              size="small"
+                              value={userInfo?.position || 'Senior Designer'}
+                              InputProps={{ readOnly: true }}
+                            />
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                    </Grid>
                   </Grid>
-                </Box>
-              )}
-              
-              {activeTab === 1 && (
-                <Box>
-                  <Typography variant="h6" gutterBottom sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                    Account Settings
-                  </Typography>
-              
-                </Box>
-              )}
+                </Grid>
+              </Box>
+            )}
+            
+            {activeTab === 1 && (
+              <Box sx={{ p: 3 }}>
+                <Grid container spacing={3}>
+                  {[
+                    {
+                      title: 'Departments/Units',
+                      description: 'Manage departments and organizational units',
+                      icon: <BusinessIcon />,
+                      color: '#1e88e5',
+                      onClick: handleDepartmentClick
+                    },
+                    {
+                      title: 'HOD Management',
+                      description: 'Assign and manage heads of departments',
+                      icon: <PersonAdd />,
+                      color: '#43a047',
+                      onClick: handleHODClick
+                    },
+                    {
+                      title: 'Designations',
+                      description: 'Set up job titles and positions',
+                      icon: <CategoryIcon />,
+                      color: '#fb8c00',
+                      onClick: handleDesignationClick
+                    }
+                  ].map((item, index) => (
+                    <Grid item xs={12} sm={6} md={4} key={index}>
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          p: 3,
+                          cursor: 'pointer',
+                          height: '100%',
+                          borderRadius: 2,
+                          transition: 'all 0.2s ease-in-out',
+                          '&:hover': {
+                            transform: 'translateY(-4px)',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                          }
+                        }}
+                        onClick={item.onClick}
+                      >
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                          <Box
+                            sx={{
+                              p: 1.5,
+                              borderRadius: 2,
+                              backgroundColor: `${item.color}15`,
+                              color: item.color
+                            }}
+                          >
+                            {item.icon}
+                          </Box>
+                          <Box>
+                            <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+                              {item.title}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {item.description}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )}
+          </Paper>
+        </ContentWrapper>
+      </MainContent>
 
-              {activeTab === 2 && (
-                <Box>
-                  <Typography variant="h6" color="error" gutterBottom sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                    Delete Account
-                  </Typography>
-                  <Alert severity="warning" sx={{ mb: 2, fontSize: '0.875rem' }}>
-                    Warning: This action cannot be undone. All your data will be permanently deleted.
-                  </Alert>
-             
-                </Box>
-              )}
-            </Paper>
-          </Box>
-        </Paper>
-      </ScrollableContent>
-      
       <Modal
         {...props}
         size="lg"
@@ -589,6 +777,21 @@ function Dashboard(props) {
           </form>
         </Modal.Body>
       </Modal>
+
+      <DepartmentModal
+        open={showDepartmentModal}
+        onClose={handleModalClose}
+      />
+
+      <HODModal
+        open={showHODModal}
+        onClose={handleHODModalClose}
+      />
+
+      <DesignationModal // Add the modal component
+        open={showDesignationModal}
+        onClose={handleDesignationModalClose}
+      />
     </PageContainer>
   );
 }

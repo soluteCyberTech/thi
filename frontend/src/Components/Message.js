@@ -84,8 +84,6 @@ export const  sms_Deposit =(tel ,cname,acno,drcr,amount,desc,dat,bal)=> {
  
      }
 
-
-
      
  export const resizeFile = (file) =>
   new Promise((resolve) => {
